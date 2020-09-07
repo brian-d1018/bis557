@@ -1,0 +1,18 @@
+Package: bis557
+Type: Package
+Title: Brian's BIS 557 Work
+Version: 0.1.0
+Author: Brian Deng <brian.deng@yale.edu>
+Maintainer: Brian Deng <brian.deng@yale.edu>
+Description: All the homework that Brian did in BIS 557.
+License: LGPL (>= 2.1)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
+Depends: 
+    R (>= 2.10)
+Suggests: 
+    testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

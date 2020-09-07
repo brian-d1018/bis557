@@ -1,0 +1,72 @@
+---
+title: "bis557-hw1"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{bis557-hw1}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(bis557)
+```
+
+# BIS 557 - Homework 1 - Brian Deng
+
+The R package {bis557} was built to store all the functions and data used for 
+this class, which focuses on creating statistical models and algorithms. 
+
+- `linear_model()` - create a linear model, similar to R's `lm()` function
+- `grad_descent()` - the gradient descent algorithm used in ML
+
+## Dataset
+
+Below is an example dataset, `lm_patho` from the {bis557} package, that can be 
+used for linear regression.
+
+```{r dataset lm_patho}
+library(bis557)
+data(lm_patho)
+head(lm_patho)
+```
+
+## Example: Linear Model
+
+This is a basic example which shows you to create a linear model, for example, 
+doing regression analysis. 
+
+$$
+y \sim \beta_1 x_1 + \beta_2 x_2
+$$
+
+<br><br>
+
+```{r function linear_model}
+library(bis557)
+data(lm_patho)
+fit_linear_model <- linear_model(y ~., lm_patho)
+```
+
+## Example: Gradient Descent
+
+This is a basic example which shows you how to solve a common problem: Use an 
+optimization algorithm, such as gradient descent, to find the coefficients of 
+simple linear regression. 
+
+<br><br>
+
+```{r function grad_descent}
+library(bis557)
+data(lm_patho)
+gd_patho <- grad_descent(X = lm_patho[,-1], y = lm_patho[,1],
+                         b_0 = rep(1e-16, ncol(lm_patho)), learn_rate = 1.3e-16,
+                         max_iter = 1e5)
+gd_patho
+```
