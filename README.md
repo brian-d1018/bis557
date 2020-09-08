@@ -7,6 +7,7 @@ output:
 # bis557
 
 <!-- badges: start -->
+[![Travis build status](https://travis-ci.com/brian-d1018/bis557.svg?branch=master)](https://travis-ci.com/brian-d1018/bis557)
 <!-- badges: end -->
 
 The goal of {bis557} is to show the work that Brian did in the BIS 557 Fall 2020 
