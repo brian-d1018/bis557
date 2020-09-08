@@ -65,3 +65,4 @@ gd_patho <- grad_descent(X = lm_patho[,-1], y = lm_patho[,1],
                          max_iter = 1e5)
 gd_patho
 ```
+# bis557
