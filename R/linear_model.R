@@ -1,8 +1,8 @@
 #' @title Fitting Linear Model Function
 #' @description This function fits linear models by calculating regressions.
 #'
-#' @param formula linear model formula
-#' @param data data frame
+#' @param form linear model formula
+#' @param d data frame
 #' @param contrasts optional list of constants for factor variables aka contrast
 #'
 #' @examples
@@ -14,11 +14,20 @@
 #' @export
 #'
 
-linear_model <- function(formula, data, contrasts=NULL) {
-  # use the `lm` function
-  if (is.null(contrasts)) {
-    return(lm(formula, data))
+linear_model <- function(form, d, contrasts=NULL) {
+  if (is.null(contrasts) == TRUE) {
+    # build the model matrix
+    X <- model.matrix(form, d)
+    y <- get_all_vars(form, d)[,1]
   } else {
-    return(lm(formula, data, contrasts=contrasts))
+    X <- model.matrix(form, d, contrasts.arg = contrasts)
+    y <- get_all_vars(form, d)[,1]
+  }
+
+  # finding the coefficients depending on condition number
+  if (kappa(X) < 1e5) {
+    return(list("coefficients" = solve(crossprod(X), t(X) %*% y)))
+  } else {
+    return(list("coefficients" = qr.coef(qr(X), y)))
   }
 }

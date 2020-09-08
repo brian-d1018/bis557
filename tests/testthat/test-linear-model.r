@@ -1,12 +1,12 @@
 library(testthat)
 
-context("Test the output of homework 1.")
+context("Test the output of homework 1 - linear model.")
 
 test_that("Your linear_model() function works in an easy case.", {
 
   data(iris)
 
-  fit_linear_model <- linear_model(Sepal.Length ~ ., iris)
+  fit_linear_model <- linear_model(form = Sepal.Length ~ ., d = iris)
 
   fit_lm <- lm(Sepal.Length  ~ ., iris)
 

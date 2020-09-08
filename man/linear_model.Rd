@@ -4,12 +4,12 @@
 \alias{linear_model}
 \title{Fitting Linear Model Function}
 \usage{
-linear_model(formula, data, contrasts = NULL)
+linear_model(form, d, contrasts = NULL)
 }
 \arguments{
-\item{formula}{linear model formula}
+\item{form}{linear model formula}
 
-\item{data}{data frame}
+\item{d}{data frame}
 
 \item{contrasts}{optional list of constants for factor variables aka contrast}
 }
