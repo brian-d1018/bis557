@@ -12,7 +12,6 @@
 #'
 #' @import stats
 #' @export
-#'
 
 linear_model <- function(form, d, contrasts=NULL) {
   if (is.null(contrasts) == TRUE) {

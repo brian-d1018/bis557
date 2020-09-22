@@ -1,0 +1,193 @@
+---
+title: "homework-2"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{homework-2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(bis557)
+```
+
+# Name: Brian Deng
+
+# Question 1
+
+Assume there are $n$ observations. 
+Then, let $Y$ be an $n \times 1$ matrix, $X$ be an $n \times 2$ matrix, and 
+$\beta$ be a $2 \times 1$ matrix. 
+
+Then, we have: 
+$$
+\begin{split}
+\hat\beta &= \begin{pmatrix} \hat\beta_0 \\ \hat\beta_1 \end{pmatrix} \\
+&= (X^T X)^{-1} X^T Y \\
+&= \begin{pmatrix}
+n & \sum x_i \\
+\sum x_i & \sum x_i^2 \\
+\end{pmatrix} ^ {-1} 
+\begin{pmatrix} \sum y_i \\ \sum x_i y_i \end{pmatrix} \\
+&= \frac{1}{n \sum x_i^2 - n^2 \bar{X}^2} 
+\begin{pmatrix}
+\sum x_i^2 & -\sum x_i \\
+-\sum x_i & n \\
+\end{pmatrix}
+\begin{pmatrix} \sum y_i \\ \sum x_i y_i \end{pmatrix} \\
+&= \frac{1}{n \sum x_i^2 - n^2 \bar{X}^2} 
+\begin{pmatrix}
+n \overline{X^2} & -n \bar{X} \\
+-n \bar{X} & n \\
+\end{pmatrix}
+\begin{pmatrix} n \bar{Y} \\ \sum x_i y_i \end{pmatrix} \\
+&= \frac{1}{\sum x_i^2 - n \bar{X}^2} 
+\begin{pmatrix}
+\overline{X^2} & -\bar{X} \\
+-\bar{X} & 1 \\
+\end{pmatrix}
+\begin{pmatrix} n \bar{Y} \\ \sum x_i y_i \end{pmatrix} \\
+&= \frac{1}{\sum x_i^2 - 2\bar{X} \sum x_i + n \bar{X}^2} 
+\begin{pmatrix} n \overline{X^2} \bar{Y} - \bar{X} \sum x_i y_i \\ 
+-n \bar{X} \bar{Y} + \sum x_i y_i \end{pmatrix} \\
+&= \frac{1}{\sum (x_i - \bar{X})^2} 
+\begin{pmatrix} \bar{Y}\sum x_i^2 - n\bar{X}^2\bar{Y} 
++ n\bar{X}^2\bar{Y} - \bar{X} \sum x_i y_i \\ 
+\sum x_i y_i - \bar{Y}\sum x_i - \bar{X}\sum y_i + n\bar{X}\bar{Y} \end{pmatrix} \\
+&= \frac{1}{\sum (x_i - \bar{X})^2} 
+\begin{pmatrix} \bar{Y}(\sum x_i^2 - n\bar{X}^2) 
+- \bar{X}(-n\bar{X}\bar{Y} + \sum x_i y_i) \\ 
+\sum (x_i - \bar{X})(y_i - \bar{Y}) \end{pmatrix} \\
+&= \frac{1}{\sum (x_i - \bar{X})^2} 
+\begin{pmatrix} \bar{Y} \sum (x_i - \bar{X})^2
+- \bar{X}\sum (x_i - \bar{X})(y_i - \bar{Y}) \\ 
+\sum (x_i - \bar{X})(y_i - \bar{Y}) \end{pmatrix} \\
+&= \begin{pmatrix} \frac{\bar{Y} \sum (x_i - \bar{X})^2}{\sum (x_i - \bar{X})^2}
+- \bar{X}\frac{\sum (x_i - \bar{X})(y_i - \bar{Y})}{\sum (x_i - \bar{X})^2} \\ 
+\frac{\sum (x_i - \bar{X})(y_i - \bar{Y})}{\sum (x_i - \bar{X})^2} \end{pmatrix} \\
+&= \begin{pmatrix} \bar{Y} - \hat\beta_1 \bar{X} \\ 
+\frac{\sum (x_i - \bar{X})(y_i - \bar{Y})}{\sum (x_i - \bar{X})^2} \end{pmatrix}.
+\end{split}
+$$
+
+Therefore, we have: 
+$$
+\hat\beta_1 = \frac{\sum (x_i - \bar{X})(y_i - \bar{Y})}{\sum (x_i - \bar{X})^2}; 
+\hat\beta_0 = \bar{Y} - \hat\beta_1 \bar{X}.
+$$
+
+# Question 2
+
+The function will be called `bis557::ols_gd_hw2b()`.
+
+Here, we will compare this function to the OLS model `lm()`.
+```{r question 2}
+# Use formula to calculate coefficients and penalty
+data(iris)
+print(b_gd <- bis557::ols_gd_hw2b(form = Sepal.Length ~ ., d = iris[,-5], 
+                                  b_0 = rep(1e-9,4), learn_rate = 2, 
+                                  max_iter = 2e5))
+print(lm(Sepal.Length ~ ., iris[,-5])$coefficients)
+```
+
+Here, we see that the penalty based on the out-of-sample accuracy is estimated 
+to be around $27.30$, which is not bad considering that the `iris` dataset has 
+150 observations. 
+
+The estimated coefficients using gradient descent vs. the true coefficients 
+are slightly different, since there are many local minima to be optimized. 
+
+# Question 3
+
+We will use the function `bis557::ridge_hw2c()` for ridge regression, where the 
+penalty $L$ equals: 
+$$
+L = \frac{1}{2n}||Y - X\beta||_2^2 + \lambda ||\beta||_2^2
+$$
+
+From the textbook, we solve using the formula: 
+$$
+\hat\beta_{ridge} = (X^T X + \lambda I_p)^{-1} X^T Y
+$$
+
+Remember that for SVD, we have $X = U \Sigma V^T$. 
+Then (from the textbook), another way to write the estimated coefficients is: 
+$$
+\hat\beta_{ridge} = V \cdot 
+\text{Diag}\left(\frac{\sigma_1}{\sigma_1^2 + \lambda}, \cdots \right) U^T Y
+$$
+
+We show that as $\lambda \rightarrow \infty$, then 
+$\hat\beta_{ridge} \rightarrow 0$. 
+```{r question 3}
+# Show ridge regularization
+data(iris)
+print(lm(Sepal.Length ~ ., iris)$coefficients)
+b_ridge <- bis557::ridge_hw2c(form = Sepal.Length ~ ., d = iris, 
+                              lambda_val = 1e3)
+print(b_ridge$coefficients)
+
+# Show that ridge regression works for colinear regression variables
+data(lm_patho)
+print(bis557::ridge_hw2c(form = y ~ ., d = lm_patho, lambda_val = 1e8))
+```
+
+# Question 4
+
+# Question 5
+
+Here, we let $j$ be a predictor. 
+Here, $Y$ is a column vector with length $n$, and $\beta$ is a column vector 
+with length $p$. 
+Also, $X$ is a matrix with dimension $n \times p$.
+For notation purposes, let $X_j$ be the $j$-th column of $X$. 
+
+Then, we would minimize (using the gradient w.r.t. $\beta$): 
+$$
+L(\beta) = \frac{1}{2n} ||Y - X\beta ||_2^2 + \lambda ||\beta||_1 
+= \frac{1}{2n} ||Y - \sum_{j=1}^{p} \beta_j X_j ||_2^2 
++ \lambda \sum_{j=1}^{p} |\beta_j|.
+$$
+
+So, for each partial derivative, we have (separate cases for $\beta_j>0$, 
+$\beta_j<0$, and $\beta_j=0$): 
+$$
+\begin{split}
+\frac{\partial L}{\partial \beta_j} &= 0 \\
+&= \frac{1}{n} (X_j^T X_j \beta_j - X_j^T Y) + \lambda\cdot\text{sign}(\beta_j).
+\end{split}
+$$
+
+For $\beta_j>0$, we have: 
+$$
+\hat\beta_j^{LASSO} = \left(\frac{X_j^T X_j}{n}\right)^{-1} 
+\left(\frac{X_j^T Y}{n} - \lambda\right).
+$$
+
+For $\beta_j<0$, we have: 
+$$
+\hat\beta_j^{LASSO} = \left(\frac{X_j^T X_j}{n}\right)^{-1} 
+\left(\frac{X_j^T Y}{n} + \lambda\right).
+$$
+
+These both work only when $\left|\frac{X_j^T Y}{n}\right|>\lambda$, so that 
+the signs are consistent. 
+We know that the norm $X_j^T X_j \geq 0$. 
+Otherwise, we have $\beta_j=0$ when $\left|\frac{X_j^T X_j}{n}\right|\leq\lambda$. 
+
+Therefore, we can say that the solution is: 
+$$
+\hat\beta_j^{LASSO} = \text{sign} \left(\frac{X_j^T Y}{n}\right) \cdot
+\left(\frac{X_j^T X_j}{n}\right)^{-1} \cdot
+\max\left(\left|\frac{X_j^T Y}{n}\right| - \lambda, 0 \right).
+$$
+
+Thus, the statement "$\hat\beta_j^{LASSO}=0$ if $|X_j^T Y| \leq n\lambda$" is 
+true. 
