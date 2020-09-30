@@ -24,7 +24,8 @@ the estimated coefficients, as well as the penalty (loss)
 }
 \description{
 This function uses the gradient descent algorithm (matrix form)
-to solve OLS and the penalty based on out-of-sample accuracy.
+to solve OLS using 10-fold cross validation (to calculate out-of-sample
+accuracy).
 }
 \examples{
 set.seed(2020)

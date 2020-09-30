@@ -17,3 +17,6 @@ Suggests:
     rmarkdown,
     covr
 VignetteBuilder: knitr
+Imports: 
+    stats,
+    rsample

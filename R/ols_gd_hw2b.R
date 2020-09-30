@@ -1,6 +1,7 @@
 #' @title OLS with Gradient Descent
 #' @description This function uses the gradient descent algorithm (matrix form)
-#' to solve OLS and the penalty based on out-of-sample accuracy.
+#' to solve OLS using 10-fold cross validation (to calculate out-of-sample
+#' accuracy).
 #'
 #' @param form linear model formula
 #' @param d data frame
@@ -19,22 +20,52 @@
 #'                     learn_rate = 0.18, max_iter = 1e5)
 #'
 #' @import stats
+#' @import rsample
 #' @export
 
 ols_gd_hw2b <- function(form, d, b_0, learn_rate, max_iter, contrasts=NULL) {
   # build the model matrix X, without the intercept column at first
   if (is.null(contrasts) == TRUE) {
-    X <- model.matrix(form, d)[,-1]
-    y <- get_all_vars(form, d)[,1]
+    folds <- vfold_cv(data = d, v = 10)
+    errors <- numeric()
+    betas <- matrix(0, nrow = length(b_0), ncol = length(folds$id))
+    for (j in 1:length(folds$id)) {
+      d_train <- analysis(folds$splits[[j]])
+      d_test <- assessment(folds$splits[[j]])
+      X_train <- model.matrix(form, d_train)[,-1]
+      X_test <- model.matrix(form, d_test)[,-1]
+      y_train <- get_all_vars(form, d_train)[,1]
+      y_test <- get_all_vars(form, d_test)[,1]
+
+      # Estimated y vs Actual y (Error L2 norm)
+      b <- grad_descent(X_train, y_train, b_0, learn_rate, max_iter)
+      y_test_hat <- model.matrix(form, d_test) %*% as.vector(b)
+      errors[j] <- mean( (y_test - y_test_hat)^2 )
+      betas[,j] <- b
+    }
   } else {
-    X <- model.matrix(form, d, contrasts.arg = contrasts)[,-1]
-    y <- get_all_vars(form, d)[,1]
+    folds <- vfold_cv(data = d, v = 10)
+    errors <- numeric()
+    betas <- matrix(0, nrow = length(b_0), ncol = length(folds$id))
+    for (j in 1:length(folds$id)) {
+      d_train <- analysis(folds$splits[[j]])
+      d_test <- assessment(folds$splits[[j]])
+      X_train <- model.matrix(form, d_train, contrasts.arg = contrasts)[,-1]
+      X_test <- model.matrix(form, d_test, contrasts.arg = contrasts)[,-1]
+      y_train <- get_all_vars(form, d_train)[,1]
+      y_test <- get_all_vars(form, d_test)[,1]
+
+      # Estimated y vs Actual y (Error L2 norm)
+      b <- grad_descent(X_train, y_train, b_0, learn_rate, max_iter)
+      y_test_hat <- model.matrix(form, d_test) %*% as.vector(b)
+      errors[j] <- mean( (y_test - y_test_hat)^2 )
+      betas[,j] <- b
+    }
   }
 
-  # Estimated y vs Actual y (Error L2 norm)
-  b <- grad_descent(X, y, b_0, learn_rate, max_iter)
-  y_hat <- model.matrix(form, d) %*% as.vector(b)
-  errors <- sum( (y - y_hat)^2 )
-  my_list <- list("coefficients" = b, "penalty_error" = errors)
+  # Find the fold with the lowest MSE
+  idx_min <- which.min(errors)
+  my_list <- list("coefficients" = as.vector(betas[,idx_min]),
+                  "CV_penalty_MSE" = mean(errors))
   return(my_list)
 }

@@ -39,7 +39,7 @@ $$
 ``` r
 library(bis557)
 data(lm_patho)
-fit_linear_model <- linear_model(y ~., lm_patho)
+print(fit_linear_model <- linear_model(y ~., lm_patho))
 ```
 
 Suppose that if the model matrix is ill-conditioned, then we can use QR 
@@ -58,5 +58,5 @@ data(lm_patho)
 gd_patho <- grad_descent(X = lm_patho[,-1], y = lm_patho[,1],
                          b_0 = rep(1e-16, ncol(lm_patho)), learn_rate = 1.3e-16,
                          max_iter = 1e5)
-gd_patho
+print(gd_patho)
 ```

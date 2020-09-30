@@ -91,15 +91,17 @@ Here, we will compare this function to the OLS model `lm()`.
 ```{r question 2}
 # Use formula to calculate coefficients and penalty
 data(iris)
-print(b_gd <- bis557::ols_gd_hw2b(form = Sepal.Length ~ ., d = iris[,-5], 
-                                  b_0 = rep(1e-9,4), learn_rate = 2, 
-                                  max_iter = 2e5))
-print(lm(Sepal.Length ~ ., iris[,-5])$coefficients)
+b_gd <- bis557::ols_gd_hw2b(form = Sepal.Length ~ ., d = iris[,-5], 
+                            b_0 = rep(1e-9,4), learn_rate = 2, 
+                            max_iter = 2e4)
+print(cbind("lm()" = lm(Sepal.Length ~ ., iris[,-5])$coefficients, 
+            "ols_gd_hw2b()" = b_gd$coefficients))
+cat("\n")
+print(paste0("CV_penalty_MSE = ", sprintf("%.4f", b_gd$CV_penalty_MSE)))
 ```
 
-Here, we see that the penalty based on the out-of-sample accuracy is estimated 
-to be around $27.30$, which is not bad considering that the `iris` dataset has 
-150 observations. 
+Here, we see that the penalty based on the out-of-sample 10-fold CV MSE is 
+estimated to be around $0.16$. 
 
 The estimated coefficients using gradient descent vs. the true coefficients 
 are slightly different, since there are many local minima to be optimized. 
@@ -129,17 +131,36 @@ $\hat\beta_{ridge} \rightarrow 0$.
 ```{r question 3}
 # Show ridge regularization
 data(iris)
-print(lm(Sepal.Length ~ ., iris)$coefficients)
 b_ridge <- bis557::ridge_hw2c(form = Sepal.Length ~ ., d = iris, 
-                              lambda_val = 1e3)
-print(b_ridge$coefficients)
+                              lambda_val = 10)
+print(cbind("lm()" = lm(Sepal.Length ~ ., iris)$coefficients, 
+            "lam=10" = b_ridge$coefficients))
+cat("\n")
 
 # Show that ridge regression works for colinear regression variables
 data(lm_patho)
-print(bis557::ridge_hw2c(form = y ~ ., d = lm_patho, lambda_val = 1e8))
+b_patho <- bis557::ridge_hw2c(form = y ~ ., d = lm_patho, 
+                              lambda_val = 1)
+print(cbind("lm()" = lm(y ~ ., lm_patho)$coefficients, 
+            "lam=1" = b_patho$coefficients))
 ```
 
 # Question 4
+
+The method for optimizing the ridge parameter $\lambda$ is below. 
+We will use the function `bis557::ridge_hw2d()`. 
+```{r question 4}
+# Show the most optimal lambda
+data(iris)
+b_ridge <- bis557::ridge_hw2d(form = Sepal.Length ~ ., d = iris[,-5], 
+                              lambda_vals = 10^seq(-3, 2, length = 200))
+print(b_ridge)
+cat("\n")
+b_best <- bis557::ridge_hw2c(form = Sepal.Length ~ ., d = iris[,-5], 
+                              lambda_val = b_ridge$min_lambda)
+print(cbind("lm()" = lm(Sepal.Length ~ ., iris[,-5])$coefficients, 
+            "best_lambda" = b_best$coefficients))
+```
 
 # Question 5
 

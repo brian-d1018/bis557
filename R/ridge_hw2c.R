@@ -23,6 +23,7 @@ ridge_hw2c <- function(form, d, lambda_val, contrasts=NULL) {
   }
   y <- get_all_vars(form, d)[,1]
 
+  # SVD
   Xsvd <- svd(X); U <- Xsvd$u; V <- Xsvd$v; sigmas <- Xsvd$d
   D <- diag(sigmas / (sigmas^2 + lambda_val))
   b_hat <- V %*% D %*% t(U) %*% y
