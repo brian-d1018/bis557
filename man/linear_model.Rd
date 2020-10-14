@@ -13,6 +13,9 @@ linear_model(form, d, contrasts = NULL)
 
 \item{contrasts}{optional list of constants for factor variables aka contrast}
 }
+\value{
+the best-fit coefficients for linear regression
+}
 \description{
 This function fits linear models by calculating regressions.
 }

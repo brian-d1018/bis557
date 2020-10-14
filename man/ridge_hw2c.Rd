@@ -15,6 +15,9 @@ ridge_hw2c(form, d, lambda_val, contrasts = NULL)
 
 \item{contrasts}{optional list of constants for factor variables aka contrast}
 }
+\value{
+the best-fit coefficients with ridge regularization
+}
 \description{
 This function fits linear models with the ridge regression
 regularization (using the l2 norm). This method is used to reduce overfitting.

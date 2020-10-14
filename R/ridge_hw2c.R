@@ -7,6 +7,8 @@
 #' @param lambda_val the lambda value (regularization parameter)
 #' @param contrasts optional list of constants for factor variables aka contrast
 #'
+#' @return the best-fit coefficients with ridge regularization
+#'
 #' @examples
 #' data(iris)
 #' ridge_hw2c(Sepal.Length ~ ., iris, lambda_val = 1)

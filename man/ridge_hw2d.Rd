@@ -15,6 +15,9 @@ ridge_hw2d(form, d, lambda_vals, contrasts = NULL)
 
 \item{contrasts}{optional list of constants for factor variables aka contrast}
 }
+\value{
+The minimum loss and the lambda associated with it
+}
 \description{
 This function finds the lambda which gives the lowest loss.
 }

@@ -6,6 +6,8 @@
 #' @param lambda_vals the lambda values (regularization parameter)
 #' @param contrasts optional list of constants for factor variables aka contrast
 #'
+#' @return The minimum loss and the lambda associated with it
+#'
 #' @examples
 #' data(iris)
 #' ridge_hw2d(form = Sepal.Length ~ ., d = iris[,-5],

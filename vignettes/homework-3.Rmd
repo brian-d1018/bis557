@@ -1,0 +1,91 @@
+---
+title: "homework-3"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{homework-3}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(bis557)
+```
+
+# Name: Brian Deng
+
+# Question 1
+
+We have the equation: 
+$$
+H(l) = X^{t}DX, 
+$$
+
+where $D_{i,i}=p_{i} (1-p_{i})$. 
+
+We know that $D=I$ (identity matrix) for the linear Hessian. 
+
+To make the logistic Hessian matrix ill-conditioned, we want to set many   
+of the **diagonal elements to be infinitesimally close to 0**, so that: 
+$$
+\exists i : D_{i,i} \rightarrow 0. 
+$$
+
+This means that **most of the probabilities should be very close to 0 or 1** 
+($p_{i} \rightarrow 0$ or $p_{i} \rightarrow 1$). 
+
+### Example
+
+Let's create a $120 \times 8$ matrix using the rng `set.seed(2020)`. 
+To make the probabilities really close to $0$ or $1$, let 
+$\beta=(200,200,...,200)$. 
+We will check the **condition number** $\kappa$ for the linear Hessian and the 
+logistic Hessian. 
+A high condition number indicates ill-condition. 
+```{r Question 1}
+# Dimensions
+set.seed(2020)
+n <- 120; p <- 8
+
+# Matrix X, Coefficient betas, and Probabilities
+beta <- rep(200, p)
+X <- cbind(1, matrix(data = rnorm(n * (p - 1)), nrow = n, ncol = p - 1))
+probs <- 1 / (1 + exp(-X %*% beta)) # logistic
+print(quantile(probs, c(0.1, 0.25, 0.5, 0.75, 0.9))) # mostly near 0 or 1
+
+# Linear Hessian and Logistic Hessian
+print(Hessian_linear <- kappa(t(X) %*% X)) # Answer: 2.33
+D <- diag(as.vector(probs) * (1 - as.vector(probs)), nrow = n, ncol = n)
+print(Hessian_logis <- kappa(t(X) %*% D %*% X)) # Answer: 3.01e+13
+```
+
+Here, we see that $\kappa (X^{t} X) = 2.33$ (low condition number) and 
+$\kappa (X^{t} DX) = 3.01 \times 10^{13}$ (high condition number). 
+
+Thus, the **linear Hessian is well-conditioned** but 
+the **logistic Hessian is ill-conditioned**. 
+
+# Question 2
+
+# Question 3
+
+The function will be called `bis557::multiclass_hw3c()`. 
+This is the generalized logistic regression to predict **multiple** classes. 
+The approach used is the *one-vs-all* approach, where for each of the $K$ 
+classes, a **separate** logistic regression model is deployed (coefficients and 
+probabilities). 
+Then, for each observation, the class with the **highest probability** is chosen. 
+
+The example below predicts the species of the iris using this function with 
+**96%** accuracy. 
+```{r Question 3}
+data(iris)
+species_pred <- multiclass_hw3c(X = iris[,-5], y = iris$Species, maxiter = 60)
+print(paste0("Prediction Accuracy = ", mean(iris$Species == species_pred)))
+```

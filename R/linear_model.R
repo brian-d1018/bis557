@@ -5,6 +5,8 @@
 #' @param d data frame
 #' @param contrasts optional list of constants for factor variables aka contrast
 #'
+#' @return the best-fit coefficients for linear regression
+#'
 #' @examples
 #' linear_model(Sepal.Length ~ ., iris)
 #' linear_model(Sepal.Length ~ ., iris,

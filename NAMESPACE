@@ -2,6 +2,7 @@
 
 export(grad_descent)
 export(linear_model)
+export(multiclass_hw3c)
 export(ols_gd_hw2b)
 export(ridge_hw2c)
 export(ridge_hw2d)
