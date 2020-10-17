@@ -34,7 +34,7 @@ multiclass_hw3c <- function(X, y, maxiter=50, tol=1e-12) {
       b_old <- beta # keep the old beta coefficient for comparison later
       p <- 1 / (1 + exp(-X %*% beta))     # probabilities
       D <- as.numeric(p * (1 - p))        # variance of probabilities
-      H <- t(X) %*% diag(D) %*% X         # Hessian matrix
+      H <- t(X) %*% diag(D) %*% X         # Hessian matrix (second-order)
       score <- t(X) %*% (y_bin - p)       # Gradient
       beta <- beta + (solve(H) %*% score) # update beta
       if (sum((beta - b_old)^2) < tol) break

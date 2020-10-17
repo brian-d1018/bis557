@@ -24,7 +24,7 @@ library(bis557)
 
 We have the equation: 
 $$
-H(l) = X^{t}DX, 
+H(l) = X^{T}DX, 
 $$
 
 where $D_{i,i}=p_{i} (1-p_{i})$. 
@@ -73,17 +73,86 @@ the **logistic Hessian is ill-conditioned**.
 
 # Question 2
 
+The function will be called `bis557::glm_hw3b()`. 
+Here, we use only the first-order condition to solve coefficients from a 
+**generalized** linear model (GLM) using the gradient descent algorithm. 
+
+For each observation $i$, we let: 
+$$
+\mathbb{E}[y_i] = g^{-1}(\langle x_i, \beta \rangle), 
+$$
+where $g$ is the link function. 
+
+The **gradient/score** of the likelihood function $l$ is: 
+$$
+\bigtriangledown_{\beta} l(\beta) = X^{T}(y - \mathbb{E}[y]). 
+$$
+
+The gradient descent algorithm tells us to update $\beta$ so that: 
+$$
+\beta \leftarrow \beta - \alpha \bigtriangledown_{\beta} l(\beta), 
+$$
+where $\alpha$ is the step size. 
+
+The example below uses GLM to solve coefficients with a Poisson-distributed 
+response variable, first using a **constant** step size. 
+```{r Question 2 constant steps}
+# Givens (with constant step size)
+set.seed(2020)
+n <- 3000; p <- 4; maxiter <- 500; steps <- rep(1e-3, maxiter)
+
+# Create covariates X, response variable y, and the true beta coefficients
+X <- cbind(1, matrix(rnorm(n * (p-1)), ncol = p-1))
+beta <- c(-1, 0.2, 0.1, 0.3)
+y <- rpois(n, lambda = exp(X %*% beta))
+
+# Use GLM to solve for coefficients
+b_hat <- glm_hw3b(X, y, family = poisson(link = "log"), steps, maxiter)
+
+# Compare true vs estimated coefficients
+print(cbind(beta, b_hat$coefficients))
+```
+
+The estimated coefficients $\hat\beta$ are very close to the actual 
+coefficients $\beta$ for constant step size. 
+
+Second, we will use an **adaptive** step size 
+$\alpha_{t} = O\left( \frac{1}{t} \right)$, for the same data. 
+```{r Question 2 adaptive steps}
+# Adaptive Step Size
+set.seed(2020)
+steps2 <- 5e-3/(1:maxiter)
+
+# Use GLM to solve for coefficients
+b_hat2 <- glm_hw3b(X, y, family = poisson(link = "log"), 
+                   steps = steps2, maxiter)
+
+# Compare true vs estimated coefficients
+print(cbind(beta, b_hat2$coefficients))
+```
+
+The estimated coefficients $\hat\beta$ are also very close to the actual 
+coefficients $\beta$ for adaptive step size. 
+
+Therefore, the performance between a constant step size and an adaptive step 
+size is **very similar**, and performs really well depending on the user's 
+choice of step size. 
+
 # Question 3
 
 The function will be called `bis557::multiclass_hw3c()`. 
 This is the generalized logistic regression to predict **multiple** classes. 
 The approach used is the *one-vs-all* approach, where for each of the $K$ 
 classes, a **separate** logistic regression model is deployed (coefficients and 
-probabilities). 
+probabilities), where the model predicts whether the observation is in class 
+$k$ or not (for $k = \{1,2,...,K\}$).  
+We use the Newton-Raphson method (second-order). 
 Then, for each observation, the class with the **highest probability** is chosen. 
 
 The example below predicts the species of the iris using this function with 
 **96%** accuracy. 
+Notice that we can use *fewer* iterations due to the second-order condition 
+(compared to Question 2). 
 ```{r Question 3}
 data(iris)
 species_pred <- multiclass_hw3c(X = iris[,-5], y = iris$Species, maxiter = 60)
