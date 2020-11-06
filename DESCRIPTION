@@ -4,7 +4,7 @@ Title: Brian's BIS 557 Work
 Version: 0.1.0
 Author: Brian Deng <brian.deng@yale.edu>
 Maintainer: Brian Deng <brian.deng@yale.edu>
-Description: All the homework that Brian did in BIS 557.
+Description: All the homework and projects that Brian did in BIS 557.
 License: LGPL (>= 2.1)
 Encoding: UTF-8
 LazyData: true
@@ -19,4 +19,5 @@ Suggests:
 VignetteBuilder: knitr
 Imports: 
     stats,
-    rsample
+    rsample, 
+    reticulate

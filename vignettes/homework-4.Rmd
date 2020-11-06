@@ -1,0 +1,186 @@
+---
+title: "homework-4"
+author: "Name: Brian Deng"
+output: rmarkdown::pdf_document
+# output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{homework-4}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(bis557)
+```
+
+# Name: Brian Deng (BIS557 HW4)
+
+# Question 1
+
+We will use the **Python** function `bis557::ridge_py_hw4a()` for **ridge** 
+regression (thanks to the {reticulate} library), where the *penalty* $L$ equals: 
+$$
+L = \frac{1}{2n}||Y - X\beta||_2^2 + \lambda ||\beta||_2^2. 
+$$
+
+From the textbook, we solve using the formula: 
+$$
+\hat\beta_{ridge} = (X^T X + \lambda I_p)^{-1} X^T Y
+$$
+
+Remember that for SVD, we have $X = U \Sigma V^T$. Then (from the textbook), a 
+way to write the estimated coefficients is: 
+$$
+\hat\beta_{ridge} = V \cdot 
+\text{Diag}\left(\frac{\sigma_1}{\sigma_1^2 + \lambda}, \cdots \right) U^T Y
+$$
+
+We show that as $\lambda \rightarrow \infty$, then 
+$\hat\beta_{ridge} \rightarrow 0$. Of course, we will compare **Python** and **R**. 
+```{r question 1}
+# Show ridge regularization
+data(iris)
+y <- matrix(iris$Sepal.Length, ncol = 1)
+X <- model.matrix(~. - Sepal.Length, data = iris)
+b_ridge_10_py <- bis557::ridge_py_hw4a(y, X, lambda_val = 10)
+b_ridge_10 <- bis557::ridge_hw2c(form = Sepal.Length ~ ., d = iris, 
+                              lambda_val = 10)
+b_ridge_01_py <- bis557::ridge_py_hw4a(y, X, lambda_val = 1)
+b_ridge_01 <- bis557::ridge_hw2c(form = Sepal.Length ~ ., d = iris, 
+                              lambda_val = 1)
+# Python vs R
+df1 <- cbind("lm()" = lm(Sepal.Length ~ ., iris)$coefficients, 
+             "Python: lam=1" = b_ridge_01_py$coefficients, 
+             "R: lam=1" = b_ridge_01$coefficients, 
+             "Python: lam=10" = b_ridge_10_py$coefficients, 
+             "R: lam=10" = b_ridge_10$coefficients)
+colnames(df1) <- c("lm()", "Python: lam=1", "R: lam=1", 
+                   "Python: lam=10", "R: lam=10")
+print(df1)
+cat("\n")
+
+# Show that ridge regression works for colinear regression variables
+data(lm_patho)
+y <- matrix(lm_patho$y, ncol = 1)
+X <- model.matrix(~. - y, data = lm_patho)
+b_patho_py <- bis557::ridge_py_hw4a(y, X, lambda_val = 1)
+b_patho <- bis557::ridge_hw2c(form = y ~ ., d = lm_patho, 
+                              lambda_val = 1)
+# Python vs R
+df2 <- cbind("lm()" = lm(y ~ ., lm_patho)$coefficients, 
+             "Python: lam=1" = b_patho_py$coefficients, 
+             "R: lam=1" = b_patho$coefficients)
+colnames(df2) <- c("lm()", "Python: lam=1", "R: lam=1")
+print(df2)
+cat("\n")
+```
+
+Therefore, the results from using Python are **similar** to the results from 
+using R! Of course, the coefficients are different (*and* smaller in magnitude) 
+as $\lambda$ increases. 
+
+# Question 2
+
+We will use the **Python** function `bis557::linear_model_py_hw4b()` to fit 
+linear models. Of course, we will first read in a data frame using 
+**batches of contiguous rows** to find the coefficients, then take the average 
+of all the coefficients. 
+
+The example below will use millions of rows (`n = 5e6`) and several predictors, 
+and this implementation will use $K=100$ batches. 
+
+```{r question 2}
+# Create large data frame
+set.seed(2020)
+K <- 1e2; n <- 5e6; p <- 8
+X <- matrix(rnorm(n*p, mean = 2, sd = 4), nrow = n, ncol = p)
+X <- as.data.frame(X)
+colnames(X) <- c("y", paste("x", 1:7, sep = ""))
+
+# store coefficients for all K = 100 folds
+betas <- matrix(nrow = K, ncol = p)
+
+# Python linear model
+for (i in 1:K) {
+  b_batch <- linear_model_py_hw4b(form = y ~ .,
+                                  d = X[((i-1)*n/K + 1):(i*n/K),])
+  betas[i,] <- b_batch$coefficients
+}
+
+# Take the average of the coefficients
+b_hat_py <- colMeans(betas)
+
+# Test: Compare "lm()" for one batch vs lm for contiguous rows
+print(df <- cbind("lm()" = lm(y ~ ., X)$coefficients, 
+                  "Python: K=100" = b_hat_py))
+cat("\n")
+```
+
+Therefore, the "out-of-core" implementation of creating a linear model from big 
+data by **reading in contiguous rows is reliable** (but of course, there will be 
+a few limitations). 
+
+# Question 3
+
+Here, we let $j$ be a predictor. Here, $Y$ is a column vector with length $n$, 
+and $\beta$ is a column vector with length $p$. Also, $X$ is a matrix with 
+dimension $n \times p$. For notation purposes, let $X_j$ be the $j$-th column 
+of $X$. 
+
+We will use the **Python** function `bis557::lasso_py_hw4c()` for **LASSO** 
+regression (thanks to the {reticulate} library), where the *penalty* $L$ equals: 
+$$
+L = \frac{1}{2n}||Y - X\beta||_2^2 + \lambda ||\beta||_1. 
+$$
+
+From the results of HW2 Question 5 (generalized from the textbook), given that 
+$X$ is *orthonormal*, we have: 
+$$
+\hat\beta_j^{LASSO} = \text{sign} (X^T Y)_j \cdot
+[(X^T X)^{-1} \cdot \max(|X^T Y| - n\lambda, 0)]_j. 
+$$
+
+We show that as $\lambda \rightarrow \infty$, then more coefficients of 
+$\hat\beta_j^{LASSO}=0$, showing **subset selection**. Of course, we will 
+compare **Python** and **R**. 
+
+```{r question 3}
+# Show LASSO regularization
+set.seed(2020)
+n <- 100; p <- 10
+X <- matrix(rnorm(n*p, sd = 10), nrow = n, ncol = p)
+y <- matrix(rnorm(n, sd = 10), ncol = 1)
+
+# Orthonormalize the matrix
+Q <- qr.Q(qr(X))
+b_lasso1_py <- bis557::lasso_py_hw4c(y, Q, lambda_val = 1e-2)
+b_lasso2_py <- bis557::lasso_py_hw4c(y, Q, lambda_val = 1e-1)
+b_lasso3_py <- bis557::lasso_py_hw4c(y, Q, lambda_val = 1e0)
+b_lasso1_r <- bis557::casl_lenet(Q, y, lambda = 1e-2, maxit = 1e3L)
+b_lasso2_r <- bis557::casl_lenet(Q, y, lambda = 1e-1, maxit = 1e3L)
+b_lasso3_r <- bis557::casl_lenet(Q, y, lambda = 1e0, maxit = 1e3L)
+
+# Python vs R: lambda = 0.01, 0.1
+df <- cbind("lm()" = lm(y ~ Q)$coefficients, 
+            "Python: lam=0.01" = b_lasso1_py$coefficients, 
+            "R: lam=0.01" = b_lasso1_r, 
+            "Python: lam=0.1" = b_lasso2_py$coefficients, 
+            "R: lam=0.1" = b_lasso2_r)
+colnames(df) <- c("lm()", "Python: lam=0.01", "R: lam=0.01", "Python: lam=0.1", 
+                  "R: lam=0.1")
+print(df)
+cat("\n")
+```
+
+Therefore, the results from using Python are **similar** to the results from
+using R! Of course, the coefficients are different (*and* smaller in magnitude)
+as $\lambda$ increases.
+
+# Question 4

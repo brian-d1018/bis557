@@ -20,6 +20,7 @@ the best-fit coefficients for linear regression
 This function fits linear models by calculating regressions.
 }
 \examples{
+data(iris)
 linear_model(Sepal.Length ~ ., iris)
 linear_model(Sepal.Length ~ ., iris,
              contrasts = list(Species = "contr.sum"))

@@ -8,6 +8,7 @@
 #' @return the best-fit coefficients for linear regression
 #'
 #' @examples
+#' data(iris)
 #' linear_model(Sepal.Length ~ ., iris)
 #' linear_model(Sepal.Length ~ ., iris,
 #'              contrasts = list(Species = "contr.sum"))

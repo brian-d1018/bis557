@@ -1,6 +1,8 @@
 ---
 title: "homework-2"
-output: rmarkdown::html_vignette
+author: "Name: Brian Deng"
+output: rmarkdown::pdf_document
+# output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{homework-2}
   %\VignetteEngine{knitr::rmarkdown}
@@ -18,7 +20,7 @@ knitr::opts_chunk$set(
 library(bis557)
 ```
 
-# Name: Brian Deng
+# Name: Brian Deng (BIS557 HW2)
 
 # Question 1
 
