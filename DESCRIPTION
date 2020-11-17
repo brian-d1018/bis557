@@ -20,4 +20,8 @@ VignetteBuilder: knitr
 Imports: 
     stats,
     rsample, 
-    reticulate
+    reticulate, 
+    devtools,
+    casl
+Remotes:
+    github::statsmaths/casl

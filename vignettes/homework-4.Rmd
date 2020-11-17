@@ -16,8 +16,10 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+```{r setup, results='hide'}
 library(bis557)
+library(reticulate)
+library(casl)
 ```
 
 # Name: Brian Deng (BIS557 HW4)
@@ -110,7 +112,7 @@ betas <- matrix(nrow = K, ncol = p)
 # Python linear model
 for (i in 1:K) {
   b_batch <- linear_model_py_hw4b(form = y ~ .,
-                                  d = X[((i-1)*n/K + 1):(i*n/K),])
+                                  d = X[ceiling((i-1)*n/K + 1):ceiling(i*n/K),])
   betas[i,] <- b_batch$coefficients
 }
 
@@ -163,9 +165,9 @@ Q <- qr.Q(qr(X))
 b_lasso1_py <- bis557::lasso_py_hw4c(y, Q, lambda_val = 1e-2)
 b_lasso2_py <- bis557::lasso_py_hw4c(y, Q, lambda_val = 1e-1)
 b_lasso3_py <- bis557::lasso_py_hw4c(y, Q, lambda_val = 1e0)
-b_lasso1_r <- bis557::casl_lenet(Q, y, lambda = 1e-2, maxit = 1e3L)
-b_lasso2_r <- bis557::casl_lenet(Q, y, lambda = 1e-1, maxit = 1e3L)
-b_lasso3_r <- bis557::casl_lenet(Q, y, lambda = 1e0, maxit = 1e3L)
+b_lasso1_r <- casl::casl_lenet(Q, y, lambda = 1e-2, maxit = 1e3L)
+b_lasso2_r <- casl::casl_lenet(Q, y, lambda = 1e-1, maxit = 1e3L)
+b_lasso3_r <- casl::casl_lenet(Q, y, lambda = 1e0, maxit = 1e3L)
 
 # Python vs R: lambda = 0.01, 0.1
 df <- cbind("lm()" = lm(y ~ Q)$coefficients, 
@@ -184,3 +186,30 @@ using R! Of course, the coefficients are different (*and* smaller in magnitude)
 as $\lambda$ increases.
 
 # Question 4
+
+For this **final** project, I propose to perform an analysis of a large dataset 
+(with at least 100,000 rows and 70+ columns). This will use a combination of 
+computational ML methods, multivariate statistics with creative models, and 
+probably a deep learning model with *specialized* user-input penalty weights. 
+Analyzing a large dataset to make ML predictions requires some 
+**domain knowledge** to succeed in designing the loss and optimization function. 
+
+The dataset that I want to investigate is **Boston's** Property Assessment on 
+**residential** real estate properties for 2020. I hope to **investigate**
+the analytics of Boston's high demand for residential real estate, in which some 
+domain knowledge (e.g. real estate, Boston's demographics and geography, etc.) 
+and user-specialized ML algorithms are useful. This CSV data was retrieved from 
+**Analyze Boston**, which is the main source for open-source data of Boston. The 
+website for Boston's Property Assessment is below:
+
+ > https://data.boston.gov/dataset/property-assessment.
+
+Using tools that I learned from BIS 557, I hope to use this dataset to study how 
+Boston's residential properties are related (or different) by examining various 
+characteristics, such as distance from downtown Boston, building style, property 
+value, house size, year built, and annual property tax. This is where creative 
+ML and deep learning methods (as well as multivariate stats methods) come to 
+play - such as clustering (and *playing* around with the algorithms and taking 
+advantage of *domain knowledge* to **change parameters and weights** (i.e. 
+assigning heavier weights or penalties to a particular zip code). 
+

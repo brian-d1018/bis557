@@ -12,7 +12,7 @@ test_that("Your linear_model_py_hw4b() function works with 10 batches of Iris da
 
   for (i in 1:K) {
     b_batch <- linear_model_py_hw4b(form = Sepal.Length ~ .,
-                                    d = iris[((i-1)*n/K + 1):(i*n/K), -5])
+                                    d = iris[ceiling((i-1)*n/K + 1):ceiling(i*n/K), -5])
     betas[i,] <- b_batch$coefficients
   }
 
@@ -32,7 +32,7 @@ test_that("Your linear_model_py_hw4b() function works with 25 batches of Iris da
 
   for (i in 1:K) {
     b_batch <- linear_model_py_hw4b(form = Sepal.Length ~ .,
-                                    d = iris[((i-1)*n/K + 1):(i*n/K), -5])
+                                    d = iris[ceiling((i-1)*n/K + 1):ceiling(i*n/K), -5])
     betas[i,] <- b_batch$coefficients
   }
 
@@ -56,7 +56,7 @@ test_that("Your linear_model_py_hw4b() function works with a million rows of dat
 
   for (i in 1:K) {
     b_batch <- linear_model_py_hw4b(form = y ~ .,
-                                    d = X[((i-1)*n/K + 1):(i*n/K),])
+                                    d = X[ceiling((i-1)*n/K + 1):ceiling(i*n/K),])
     betas[i,] <- b_batch$coefficients
   }
 

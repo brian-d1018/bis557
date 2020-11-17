@@ -4,3 +4,10 @@ language: r
 cache: packages
 after_success:
   - Rscript -e 'covr::coveralls()'
+warnings_are_errors: false
+r_github_packages: statsmaths/casl
+
+addons:
+  apt:
+    packages:
+      - python-numpy

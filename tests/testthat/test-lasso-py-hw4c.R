@@ -1,4 +1,5 @@
 library(testthat)
+library(casl)
 
 context("Test the output of homework 4c - LASSO regression with Python.")
 
