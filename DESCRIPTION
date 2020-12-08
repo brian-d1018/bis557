@@ -18,10 +18,13 @@ Suggests:
     covr
 VignetteBuilder: knitr
 Imports: 
-    stats,
+    stats, 
     rsample, 
     reticulate, 
-    devtools,
+    devtools, 
+    utils, 
+    cluster, 
+    leaps, 
     casl
 Remotes:
     github::statsmaths/casl

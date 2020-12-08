@@ -1,0 +1,566 @@
+---
+title: "final"
+author: "Name: Brian Deng"
+output: rmarkdown::pdf_document
+# output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{final}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, results='hide', message=FALSE, warning=FALSE}
+library(bis557)
+library(cluster) # k-means clustering
+library(leaps)   # best subset selection
+library(splines) # splines and GAM
+```
+
+# Name: Brian Deng (BIS557 FINAL - Extended Abstract)
+
+# Topic: Boston 2020 Property Assessment
+
+## Introduction to Dataset
+
+In this *final* project's abstract, the aim is to investigate 
+**Boston's property values and property taxes** on **residential** real estate 
+properties for the year 2020. Boston is the primary city of New England, where 
+many prestigious universities and economic sectors (e.g. health care, life 
+sciences, education, tech, research, etc.) attract many people worldwide, which 
+has a huge effect on the real estate market and its asset values. Therefore, I 
+**investigate** the analytics of Boston's high demand for residential real 
+estate below. 
+
+This CSV data was retrieved from **Analyze Boston**, which is the main source 
+for Boston's open-source data. The websites for Boston's Property Assessment 
+are below: 
+
+> https://data.boston.gov/dataset/property-assessment.
+
+> https://data.boston.gov/dataset/property-assessment/resource/8de4e3a0-c1d2-47cb-8202-98b9cbe3bd04.
+
+The dataset is loaded in this {bis557} package, and is named 
+`data(final_data_bos)`. 
+
+Although this dataset also contains commercial real estate, I will focus 
+exclusively on **residential** real estate (excluding apartments and 
+condominiums). Several columns that are interesting to analyze are shown below: 
+
+- `ZIPCODE`: zipcode of the property (useful for geographic analysis)
+- `AV_TOTAL`: the total property value for 2020 (building + land)
+- `GROSS_TAX`: the property tax amount for 2020
+- `LAND_SF`: the land (lot) area (in square feet)
+- `YR_BUILT`: the year the property was built
+- `LIVING_AREA`: the size of the inside living area (in square feet)
+
+Of course, the analysis will not be limited to these predictors. 
+
+After data cleaning, the analysis will use a combination of computational ML 
+methods with *specialized* user-input penalty weights. Analyzing this dataset to 
+make ML predictions requires some **domain knowledge** to succeed in designing 
+the loss and optimization function. 
+
+Higher-level **diagnostic analytics** will be used to infer "*why*" and see 
+"*how*" this data provides certain relationships. This includes 
+**nonlinear modeling**, with *validation sets* and *best-subset selection*, 
+to see how several predictors can lead to the target variables of `AV_TOTAL` and 
+`GROSS_TAX`. Note that `GROSS_TAX` is the result of multiplying the values of 
+`AV_TOTAL` by a scalar, the property tax rate. 
+
+The nonlinear models can provide a good intuition to predict property values, 
+per sq ft, if one wants to sell Boston residential properties. In the data 
+cleaning process, I included a new variable `AV_TOTAL_SQFT`, the total value per 
+sq ft, which is `AV_TOTAL` divided by `LIVING_AREA`. Of course, trying to assess 
+real estate properties is difficult, given the relative inefficiency and 
+illiquidity compared to stocks/equities, so even actual valuations from the 
+original dataset might not represent the true value of the property (since 
+prices are only determined during a real estate transaction). 
+
+Besides, these models can be **assessed** on the basis 
+of using validation and test sets. A good idea to assess models is to **find** 
+a property currently on sale on Zillow and see how accurate and reliable (of 
+course, managing the bias-variance tradeoff) the models are. 
+
+Since property characteristics, and hence the property values, 
+**depend heavily on geographic factors** (e.g. specific neighborhoods, distance 
+from Downtown Boston), **multivariate** statistical methods, such as 
+clustering, will be used to see the extent of the zipcodes' similarities and 
+differences. This is where **domain knowledge** comes in (e.g. real estate, 
+Boston's demographics and geography, labor market and prevalent sectors, etc.). 
+Clustering zipcodes with similar real estate and economic characteristics can 
+allow models to be slightly more accurate, which can provide **novelty** to models. 
+
+## Data Cleaning
+
+Before doing advanced data analysis, data cleaning must be performed to make 
+sure that only **residential** properties are analyzed. The function used is 
+named `bis557::final_clean()`: 
+```{r data cleaning}
+df <- final_clean()
+```
+
+The function's script provides the *details* of data cleaning (specifically 
+rows and columns to delete and values to modify). The script includes creating 
+the new variable `AV_TOTAL_SQFT`. Here, the data table `df` is the cleaned 
+version of the original dataset. 
+
+## Domain Knowledge: Clustering Zipcodes 
+
+One of the main hypotheses is that many properties are **similar** in related 
+zipcodes. In other words, some zipcodes are more similar than others due to 
+**geographic reasons**. The domain knowledge of human geography, demography, and 
+local economic trends will help in analyzing properties in a specific 
+neighborhood. Specifically, distance from downtown, distance from areas with 
+excellent job markets in lucrative sectors, distance from the beaches, and 
+distance from excellent school districts will largely determine the property 
+value. This domain knowledge must be incorporated to ML models to update the 
+loss functions, and hopefully increase accuracy. 
+
+With `r length(unique(df$ZIPCODE))` unique zipcodes, I plan to group these 
+zipcodes into **4 clusters**. Each cluster should represent a group of zipcodes 
+that are *similar* in terms of property values, property size, property age, and 
+other property characteristics. The method used is k-means clustering, using the 
+Euclidean distance metric with Ward's linkage. The clustering plot with $k=4$ 
+clusters is shown below. The function used is `bis557::final_kclust()`. 
+```{r clustering plot, out.height='75%', out.width='75%', fig.align='center', fig.cap='Zipcode Clusters'}
+# Clustering Process
+zip_cuts <- final_kclust(df, k = 4)
+cut_num <- zip_cuts$x_cuts
+# Cluster Plot (axis of first 2 principal components) - {cluster} library
+clusplot(zip_cuts$x_zip[,-1], clus = cut_num, lines = 0, shade = FALSE, 
+         color = TRUE, labels = 2, cex = 0.5, xlab = "PC #1", ylab = "PC #2", 
+         main = "Boston Zipcodes: K-Means \n Euclidean Distance & Ward's Linkage")
+print(cut_num)
+```
+
+Here, we see that **cluster 1** (`02026`, `02126`, `02131`, `02132`, `02136`, 
+and `02467`) are Boston's southwestern suburban neighborhoods, far from Downtown 
+and close to suburban cities like Dedham, indicating cheaper residential homes. 
+
+Here, we see that **cluster 2** (`02114`, `02115`, `02116`, `02118`, and 
+`02215`) are in Downtown Boston (Beacon Hill, Back Bay, etc), with the most 
+expensive real estate and large number of rooms with several floors. 
+
+Zipcodes in **cluster 3** lie between Downtown Boston and the most suburban, 
+outer neighborhoods in Boston (some zipcodes can be inner-city Boston 
+neighborhoods with higher crime levels). 
+
+The zipcode `02108` has its own cluster, **cluster 4**, which is also one of the 
+zipcodes of Downtown Boston. This zipcode contains the Boston Common, parts of 
+Beacon Hill, and many government-owned buildings right next to the MA State 
+House. 
+
+It looks like cluster 2 and cluster 4 are similar, but one of the clusters 
+includes many government buildings in the most centrally located places in 
+Downtown Boston. 
+
+These categorizations should be included in models shown below, to show the 
+**geographical component of property valuations**. 
+```{r clustering group in dataset, echo=FALSE}
+# Add this column of cluster membership
+df$ZIP_GROUP <- as.factor(sapply(X = 1:nrow(df), 
+                                 FUN = function(X) {
+                                   cut_num[which(names(cut_num) == df$ZIPCODE[X])]
+                                 }))
+```
+
+After categorizing zipcodes to 4 clusters, the mean property value for each 
+cluster is shown below. 
+```{r mean property value per zipcode zone, echo=FALSE}
+print("Average Property Value for Each Cluster: ")
+print(coef(lm(AV_TOTAL ~ 0 + ZIP_GROUP, data = df)))
+cat("\n")
+print("Average Property Value per Square Feet for Each Cluster: ")
+print(coef(lm(AV_TOTAL_SQFT ~ 0 + ZIP_GROUP, data = df)))
+```
+
+Obviously, neighborhoods in Cluster 2 and 4 (downtown area) are the most 
+expensive, while the outer suburban regions of Boston (Cluster 1) are much 
+cheaper. This applies to both the total price and total price per square footage. 
+In the following section, several methods will be used to more carefully model 
+and predict Boston's property values. 
+
+## Domain Knowledge: Minimum Distance to Downtown
+
+For each zipcode, including the *straight distance* "as the crow flies" to either 
+Downtown Boston, Back Bay, or Cambridge (choose the minimum distance) will 
+influence the property values, since those three places contain the Boston Metro 
+Area's most expensive real estate and the most lucrative economic sectors. The 
+data will be obtained in Google Maps, using its ruler to measure distance 
+(and will be recorded in 2-mile intervals), with the dataset named as 
+`data(bos_zip_dist)`. 
+```{r distance to downtown, echo=FALSE}
+data(bos_zip_dist)
+df <- merge(df, bos_zip_dist, by = "ZIPCODE", all.x = TRUE)
+```
+
+## Polynomial Modelling 
+
+First, polynomial models should be fit to this data. The exponents (cubic, 
+quartic, etc) would be a deciding factor after considering the loss function 
+with my user inputs. The target variable will be `AV_TOTAL_SQFT`, since 
+adjusting for size and living area gives the best indicator of the property's 
+value. Each model will become more and more complex (with higher exponents). The 
+modelling will be for the training data (70% of observations). 
+
+(**Note**: When modeling on `ZIP_GROUP`, the treatment contrast sets the 
+intercept for Cluster 1.)
+```{r polynomial model}
+# Set the indices for the training set for all 6 polynomial models
+set.seed(2020)
+n_train <- round(0.7 * nrow(df))
+idx <- matrix(nrow = 6, ncol = n_train)
+for (k in 1:6) {
+  idx[k,] <- sample(nrow(df), size = n_train)
+}
+
+# Adjust exponents for each linear model
+fit1 <- lm(AV_TOTAL_SQFT ~ poly(LAND_SF,1) + YR_BUILT + poly(GROSS_AREA,1) 
+           + poly(LIVING_AREA,1) + poly(NUM_FLOORS,1) + poly(R_BDRMS,1) 
+           + poly(R_FULL_BTH,1) + poly(R_KITCH,1) + R_FPLACE + YR_LAST_UPGRA 
+           + ZIP_GROUP + poly(DIST_FROM_DT,2), data = df[idx[1,],])
+
+fit2 <- lm(AV_TOTAL_SQFT ~ poly(LAND_SF,2) + YR_BUILT + poly(GROSS_AREA,2) 
+           + poly(LIVING_AREA,2) + poly(NUM_FLOORS,1) + poly(R_BDRMS,1) 
+           + poly(R_FULL_BTH,1) + poly(R_KITCH,1) + R_FPLACE + YR_LAST_UPGRA 
+           + ZIP_GROUP + poly(DIST_FROM_DT,2), data = df[idx[2,],])
+
+fit3 <- lm(AV_TOTAL_SQFT ~ poly(LAND_SF,2) + YR_BUILT + poly(GROSS_AREA,2) 
+           + poly(LIVING_AREA,2) + poly(NUM_FLOORS,2) + poly(R_BDRMS,2) 
+           + poly(R_FULL_BTH,2) + poly(R_KITCH,2) + R_FPLACE + YR_LAST_UPGRA 
+           + ZIP_GROUP + poly(DIST_FROM_DT,2), data = df[idx[3,],])
+
+fit4 <- lm(AV_TOTAL_SQFT ~ poly(LAND_SF,3) + YR_BUILT + poly(GROSS_AREA,3) 
+           + poly(LIVING_AREA,3) + poly(NUM_FLOORS,2) + poly(R_BDRMS,2) 
+           + poly(R_FULL_BTH,2) + poly(R_KITCH,2) + R_FPLACE + YR_LAST_UPGRA 
+           + ZIP_GROUP + poly(DIST_FROM_DT,2), data = df[idx[4,],])
+
+fit5 <- lm(AV_TOTAL_SQFT ~ poly(LAND_SF,4) + YR_BUILT + poly(GROSS_AREA,4) 
+           + poly(LIVING_AREA,4) + poly(NUM_FLOORS,3) + poly(R_BDRMS,2) 
+           + poly(R_FULL_BTH,2) + poly(R_KITCH,2) + R_FPLACE + YR_LAST_UPGRA 
+           + ZIP_GROUP + poly(DIST_FROM_DT,2), data = df[idx[5,],])
+
+fit6 <- lm(AV_TOTAL_SQFT ~ poly(LAND_SF,4) + poly(YR_BUILT,3) + poly(GROSS_AREA,4) 
+           + poly(LIVING_AREA,4) + poly(NUM_FLOORS,3) + poly(R_BDRMS,2) 
+           + poly(R_FULL_BTH,2) + poly(R_KITCH,2) + poly(R_FPLACE,2)
+           + poly(YR_LAST_UPGRA,3) + ZIP_GROUP + poly(DIST_FROM_DT,2), 
+           data = df[idx[6,],])
+```
+
+The predictions for the test set (30% of observations) will be made for each of 
+the 6 polynomial models. 
+```{r polynomial prediction, echo=FALSE}
+y1_hat <- predict(fit1, newdata = df[-idx[1,],], se = TRUE)
+y2_hat <- predict(fit2, newdata = df[-idx[2,],], se = TRUE)
+y3_hat <- predict(fit3, newdata = df[-idx[3,],], se = TRUE)
+y4_hat <- predict(fit4, newdata = df[-idx[4,],], se = TRUE)
+y5_hat <- predict(fit5, newdata = df[-idx[5,],], se = TRUE)
+y6_hat <- predict(fit6, newdata = df[-idx[6,],], se = TRUE)
+```
+
+## Assessment and Loss Function
+
+For **novelty** purposes, the loss function should be *designed* so that 
+properties in Cluster 2 and 4 (downtown area) would be *penalized heavier* than 
+those in other clusters. This is because many properties in Downtown are 
+extremely expensive and thus skews the data and the model. Therefore, the loss 
+function must be *weighted*, to give a heavier weight to Clusters 2 and 4 and a 
+lighter weight to Cluster 1. 
+
+The weighted loss function for the test set is designed as follows, where 
+$\mathbf{y}$ is the actual vector and $\mathbf{\hat{y}}$ is the predicted vector: 
+$$
+L = \frac{1}{n_{\text{test}}}
+{(\mathbf{y} - \mathbf{\hat{y}})}^{T} W (\mathbf{y} - \mathbf{\hat{y}}), 
+$$
+
+where $W=\text{diag}(w_1,...,w_n)$ is a diagonal matrix such that $w_i$ is the 
+weight assigned to observation $i$ depending on the cluster group. In other 
+words, $w_i=a_{k(i)}$, where $k=k(i)$ is the cluster group number of observation 
+$i$ and the constant $a_k=a_{k(i)}$ is the constant weight assigned to cluster 
+$k$. From my criteria, $a_2>a_1$ since Cluster 2 is Downtown while Cluster 1 is 
+the outskirt suburbs of Boston. The loss function is named `bis557::final_loss1()`. 
+
+This experiment will include two sets of weights. The first set of weights will 
+be a "*strict*" version, while the second set of weights will be a "*moderated*" 
+version. Each set of weights show that different polynomial models have the 
+lowest loss. 
+
+Now, we find the polynomial model with the smallest loss, using the weights 
+$a=(0.5, 4, 0.9, 3)$ for each zipcode cluster (more severe penalties for 
+expensive zipcodes and "lenient" weights for cheaper zipcodes). 
+```{r loss 1, echo=FALSE}
+loss1 <- numeric(6); a1 <- c(0.5, 4, 0.9, 3)
+loss1[1] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[1,]], y_hat = y1_hat$fit, 
+                        w = a1, df)
+loss1[2] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[2,]], y_hat = y2_hat$fit, 
+                        w = a1, df)
+loss1[3] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[3,]], y_hat = y3_hat$fit, 
+                        w = a1, df)
+loss1[4] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[4,]], y_hat = y4_hat$fit, 
+                        w = a1, df)
+loss1[5] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[5,]], y_hat = y5_hat$fit, 
+                        w = a1, df)
+loss1[6] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[6,]], y_hat = y6_hat$fit, 
+                        w = a1, df)
+print("Loss for all 6 polynomial models - strict weight (0.5, 4, 0.9, 3): ")
+print(loss1)
+```
+
+Using the strict weights above, it looks like **model 2** has the smallest loss. 
+Note that due to applying "*strict*" weights, a simpler polynomial model is chosen. 
+
+Next, we find the polynomial model with the smallest loss, using the weights 
+$a=(0.7, 1.5, 1, 1.7)$ for each zipcode cluster (less severe penalties for 
+expensive zipcodes and slightly less lenient penalties for cheaper zipcodes). 
+```{r loss 2, echo=FALSE}
+loss2 <- numeric(6); a2 <- c(0.7, 1.5, 1, 1.7)
+loss2[1] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[1,]], y_hat = y1_hat$fit, 
+                        w = a2, df)
+loss2[2] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[2,]], y_hat = y2_hat$fit, 
+                        w = a2, df)
+loss2[3] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[3,]], y_hat = y3_hat$fit, 
+                        w = a2, df)
+loss2[4] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[4,]], y_hat = y4_hat$fit, 
+                        w = a2, df)
+loss2[5] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[5,]], y_hat = y5_hat$fit, 
+                        w = a2, df)
+loss2[6] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[6,]], y_hat = y6_hat$fit, 
+                        w = a2, df)
+print("Loss for all 6 polynomial models - moderated weight (0.7, 1.5, 1, 1.7): ")
+print(loss2)
+```
+
+Using the moderated weights above, it looks like **model 6** has the smallest loss. 
+
+The coefficients of polynomial model 2 (best model using strict weights) are shown below.
+```{r poly model 2 coefficients, echo=FALSE}
+print(summary(fit2))
+```
+
+Now, assess both model 2 (stricter weights) and model 6 (moderated weights) 
+using best subset selection, using `leaps::regsubsets()`. Then, the adjusted 
+$R^2$ and BIC would be measured. The plots for adjusted $R^2$ and BIC below 
+shows the terms to be added one-by-one, from the simplest model to the full 
+polynomial model. 
+```{r best subset assessment, echo=FALSE, out.height='50%', out.width='50%', fig.align='center', fig.cap='Best Subset Selection'}
+# Best Subset Selection
+regfit2 <- regsubsets(formula(fit2), data = df, nvmax = 18)
+regfit6 <- regsubsets(formula(fit6), data = df, nvmax = 34)
+
+# Visualizations
+par(cex.axis = 0.5)
+plot(regfit2, scale = "adjr2", xlab = "Terms and Coefficients", 
+     main = "Polynomial Model 2 (Strict Weights): Adjusted R2")
+plot(regfit6, scale = "adjr2", xlab = "Terms and Coefficients", 
+     main = "Polynomial Model 6 (Moderated Weights): Adjusted R2")
+plot(regfit2, scale = "bic", xlab = "Terms and Coefficients", 
+     main = "Polynomial Model 2 (Strict Weights): BIC")
+plot(regfit6, scale = "bic", xlab = "Terms and Coefficients", 
+     main = "Polynomial Model 6 (Moderated Weights): BIC")
+```
+
+Under "strict" weights for zipcode clustering, polynomial model 2 (lowest loss) 
+has an adjusted $R^2$ (the higher, the better) of $0.70$ and a BIC (the lower, 
+the better) of about $-73000$. For both assessment metrics, the first variable 
+to be added to the model is the coefficient `ZIP_GROUP` with treatment contrasts, 
+followed by `GROSS_AREA`, `LIVING_AREA`, and `DIST_FROM_DT` (the best predictors 
+of property value per sq ft). For some variables, such as `LIVING_AREA`, 
+including the polynomial terms before some other variables shows that some 
+variables are much more important to the model than other variables. For example, 
+including the squared `LIVING_AREA` is more important in model 2 than `NUM_FLOORS`. 
+
+Under "moderated" weights for zipcode clustering, polynomial model 6 (lowest loss) 
+has an adjusted $R^2$ (the higher, the better) of $0.71$ and a BIC (the lower, 
+the better) of about $-76000$. For both assessment metrics, the first variable 
+to be added to the model is also the coefficient `ZIP_GROUP` with treatment 
+contrasts, followed by `GROSS_AREA`, `LIVING_AREA`, and `DIST_FROM_DT` (the best 
+predictors of property value per sq ft). For some variables, such as `LIVING_AREA`, 
+including the polynomial terms before some other variables shows that some 
+variables are much more important to the model than other variables. For example, 
+including the 4th-power `LIVING_AREA` is more important in model 6 than `NUM_FLOORS`. 
+
+## Generalized Additive Models 
+
+Another model to use on this dataset is a generalized additive model (GAM), 
+where each predictor has a different function that best fits the data to give 
+better estimates of `AV_TOTAL_SQFT`. To randomize the functions (by not 
+prescribing a specific type/shape of a function), splines will be used with 
+accompanying degrees of freedom, with the help of the `{splines}` library. 
+```{r gam model}
+# GAM with varying degrees of freedom: use `splines::ns()` function
+gams <- list()
+for (k in 1:4) {
+  gams[[k]] <- lm(AV_TOTAL_SQFT ~ ns(LAND_SF, 2*k) + ns(YR_BUILT, 2*k) 
+                  + ns(GROSS_AREA, 2*k) + ns(LIVING_AREA, 2*k) 
+                  + ns(NUM_FLOORS, 2*k) + ns(R_BDRMS, 2*k) + ns(R_FULL_BTH, 2*k) 
+                  + ns(R_KITCH, 2*k) + ns(R_FPLACE, 2*k) + ns(YR_LAST_UPGRA, 2*k)
+                  + ZIP_GROUP + ns(DIST_FROM_DT, 2*k), data = df[idx[k,],])
+}
+```
+
+The GAM models will again be fit into test data, and the same loss function will 
+be used. 
+```{r gam prediction, echo=FALSE, message=FALSE, warning=FALSE}
+gam_hat <- list()
+for (k in 1:4) {
+  gam_hat[[k]] <- predict(gams[[k]], newdata = df[-idx[k,],], se = TRUE)
+}
+```
+
+The GAM model assessment will also include "*strict*" weights, as well as 
+"*moderated*" weights.
+
+Using the strict weights $a=(0.5, 4, 0.9, 3)$, we have: 
+```{r gam loss 1, echo=FALSE}
+loss3 <- numeric(4); a3 <- c(0.5, 4, 0.9, 3)
+for (k in 1:4) {
+  loss3[k] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[k,]], 
+                          y_hat = gam_hat[[k]]$fit, w = a3, df)
+}
+
+print("Loss for all 4 GAM models - strict weight (0.5, 4, 0.9, 3): ")
+print(loss3)
+```
+
+Using the assigned weights above, it looks like **model 2** has the smallest loss. 
+Note that due to applying "*strict*" weights, a simpler GAM model with smaller 
+degrees of freedom is chosen. 
+
+Using the moderated weights $a=(0.7, 1.5, 1, 1.7)$, we have:  
+```{r gam loss 2, echo=FALSE}
+loss4 <- numeric(4); a4 <- c(0.7, 1.5, 1, 1.7)
+for (k in 1:4) {
+  loss4[k] <- final_loss1(y = df$AV_TOTAL_SQFT[-idx[k,]], 
+                          y_hat = gam_hat[[k]]$fit, w = a4, df)
+}
+
+print("Loss for all 4 GAM models - moderated weight (0.7, 1.5, 1, 1.7): ")
+print(loss4)
+```
+
+Using the assigned weights above, it looks like **model 3** has the smallest loss. 
+
+The coefficients of GAM model 2 (best model using strict weights) are shown below.
+```{r gam model 2 coefficients, echo=FALSE}
+print(summary(gams[[2]]))
+```
+
+The adjusted $R^2$ value is pretty high, at 
+**`r round(summary(gams[[2]])$adj.r.squared, 2)`**, showing that a GAM model 
+with lower degrees of freedom is effective. 
+
+## Assessment: Zillow Data
+
+The chosen polynomial models (model 2 and 6) and GAM models (model 2 and 3) will 
+be *tested* on one of the very beautiful and luxurious homes that is selling in 
+Boston, as of 12/14/2020. The property address, located in the Back Bay, is: 
+
+> 61 Saint Botolph St, Boston, MA 02116. 
+
+The website is: 
+
+> https://www.zillow.com/homedetails/61-Saint-Botolph-St-Boston-MA-02116/59188464_zpid/
+
+The attribute of this property is below (3 bathrooms - 2 full and 1 half): 
+
+- Current Selling Price `AV_TOTAL`: 2299000 USD
+- `LIVING_AREA`: 2124 sq ft
+- `ZIP_GROUP`: 4 (Downtown Area 02116)
+
+Thus, `AV_TOTAL_SQFT` equals `r paste0("$", round(2299000/2124, 2))` per sq ft. 
+The other attributes, from Zillow, are shown below: 
+```{r zillow prediction, message=FALSE, warning=FALSE}
+# Data vector for this property
+zillow <- data.frame(AV_TOTAL = 2299000, AV_TOTAL_SQ_FT = 2299000/2124, 
+                     LAND_SF = 2178, YR_BUILT = 1900, GROSS_AREA = 2178, 
+                     LIVING_AREA = 2124, NUM_FLOORS = 2, R_BDRMS = 3, 
+                     R_FULL_BTH = 2, R_KITCH = 1, R_FPLACE = 1, 
+                     YR_LAST_UPGRA = 2018, ZIP_GROUP = factor(4), 
+                     DIST_FROM_DT = 0)
+
+# Predictions
+print(paste0("Predicted value/sqft - Polynomial Model #2: $", 
+             round(predict(fit2, zillow), 2)))
+print(paste0("Predicted value/sqft - Polynomial Model #6: $", 
+             round(predict(fit6, zillow), 2)))
+print(paste0("Predicted value/sqft - GAM Model #2: $", 
+             round(predict(gams[[2]], zillow), 2)))
+print(paste0("Predicted value/sqft - GAM Model #3: $", 
+             round(predict(gams[[3]], zillow), 2)))
+```
+
+For this real-world test observation, all of the chosen models **underestimated** 
+the true value per area of `r paste0("$", round(2299000/2124, 2))` / sqft, 
+probably because the models cannot measure the extreme skewness of luxurious 
+property values in the Back Bay. The models chosen by the loss function with 
+strict weights (poly model 2 and GAM model 2), with the more simple functions, 
+have a higher and thus closer estimate than the models chosen by the loss 
+function with moderated weights. 
+
+## Conclusions and Further Research
+
+Therefore, this abstract shows the analysis of 2020 Boston Residential Property 
+Values in terms of clustering to incorporate geographical domain knowledge, and 
+in terms of nonlinear models, including generalized additive models. It is 
+better for the models to test the value per square foot, rather than the total 
+value itself, to give a better comparison of real estate values. Multivariate 
+methods, such as k-means clustering, were used to show the relationships among 
+certain property characteristics according to property value, property size, and 
+property age. These characteristics were used to group zipcodes and 
+neighborhoods that are similar to each other, and the clusters showed apparent 
+geographical patterns, which provided powerful insights of this dataset. The 
+main result was that distance from Downtown Boston was a huge factor in 
+explaining the distribution of `AV_TOTAL_SQFT` and the huge contrasts in 
+different neighborhoods. 
+
+Attempting to create non-linear models, such as polynomial models and generalized 
+additive models (GAM) with increasing complexity, makes a difference when user 
+inputs and domain knowledge is incorporated into their loss functions. When 
+observations in expensive zipcodes are *penalized heavily*, simpler polynomial 
+models and GAM models are used in favor of more complex models, since simpler 
+models tend to have *lower loss* values with "*strict*" weights. However, if 
+the weights are moderated (smaller penalty for expensive zipcode clusters), then 
+the more complex models are favored. Using best subset selection, using all of 
+the terms of a particular predictor may be used before using the first term of 
+another predictor (such as using all terms of `LIVING_AREA` before using the 
+first term of `NUM_FLOORS`). The best GAM model under strict weights has a 
+relatively high adjusted $R^2$ value of `r round(summary(gams[[2]])$adj.r.squared, 2)`. 
+Assessments of using best subset selection include adjusted $R^2$ and BIC. 
+
+Finally, a real-world example of a nice but expensive property in the Back Bay 
+neighborhood of Boston. The polynomial and GAM models, both chosen using strict 
+and moderated user-input weights, slightly underestimate the property value per 
+sqft in this example. However, the simpler models (chosen by strict weights) 
+give a slightly more accurate estimate, since there is *less* overfitting of 
+skewed data points. 
+
+For further research, datasets that include similar information, but from 
+**different** suburbs and cities in the Boston metro area (including North Shore, 
+South Shore, and MetroWest) can be incorporated to provide more geographic 
+analysis and more domain knowledge beyond Boston's city boundaries, which will 
+definitely make models more creative. Also, if datasets that include more 
+**economic information** (i.e. types of sectors and jobs with various income 
+distributions) in each neighborhood are used, that can provide a richer 
+analysis of residential property values. For example, a neighborhood can have 
+high property values per sqft mainly due to the large prescence of a growing 
+sector. Also, if this research becomes more geared to real estate 
+**investment management**, datasets of rental prices and rental/tenant history 
+can also be incorporated to give real estate investors (hopefully me someday!) a 
+better sense of cap rate (ratio of net operating income NOI from tenants to the 
+original asset/property price) and investment success. Finally, in a more 
+technical standpoint, research on **choosing weights** would help make the loss 
+function and the optimization function be more flexible but *not too complex*, 
+yet more accurate, without overfitting extremely skewed outlier data. This is 
+because choosing weights on zipcode clusters requires *domain knowledge* and can 
+affect the *penalty* inflicted on specific observations. Another way to research 
+the usefulness of domain knowledge on this dataset is to create a special **index** 
+that *scores* each observation according to geographic and economic attractiveness, 
+which can make these models more useful while raising the adjusted $R^2$ score. 
