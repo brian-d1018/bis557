@@ -6,7 +6,10 @@
 [![Coveralls test coverage](https://coveralls.io/repos/github/brian-d1018/bis557/badge.svg)](https://coveralls.io/r/brian-d1018/bis557?branch=master)
 <!-- badges: end -->
 
-The goal of {bis557} is to show the work that Brian did in the BIS 557 Fall 2020 class. These include packages, functions, and data for common statistical algorithms.
+The goal of {bis557} is to show the work that Brian did in the BIS 557 Fall 2020 class. These include packages, functions, and data for common statistical algorithms. 
+
+**The final vignette has been uploaded already, on 12/14/2020.** The **final** 
+dataset is on 2020 Boston Residential Property Assessment. 
 
 ## Installation
 

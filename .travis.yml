@@ -11,3 +11,4 @@ addons:
   apt:
     packages:
       - python-numpy
+      - libgit2-dev
